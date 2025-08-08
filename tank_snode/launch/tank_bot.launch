@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Tank Bot Launch File -->
+    <!-- Launches all nodes required for the tank bot system -->
+    
+    <!-- IR Sensor Node -->
+    <node name="ir_sensor_node" pkg="tank_snode" type="ir_sensor_node.py" output="screen">
+        <remap from="ir_sensor" to="/tank_bot/ir_sensor"/>
+    </node>
+    
+    <!-- Motor Node -->
+    <node name="motor_node" pkg="tank_snode" type="motor_node.py" output="screen">
+        <remap from="motor_control" to="/tank_bot/motor_control"/>
+    </node>
+    
+    <!-- Decision Node -->
+    <node name="decision_node" pkg="tank_snode" type="decision_node.py" output="screen">
+        <remap from="decision" to="/tank_bot/decision"/>
+    </node>
+    
+    <!-- Communication Node -->
+    <node name="comm_node" pkg="tank_snode" type="comm_node.py" output="screen">
+        <remap from="communication" to="/tank_bot/communication"/>
+    </node>
+    
+    <!-- Optional: Set parameters for the tank bot system -->
+    <param name="tank_bot/debug" value="false"/>
+    <param name="tank_bot/auto_start" value="true"/>
+    
+</launch>
