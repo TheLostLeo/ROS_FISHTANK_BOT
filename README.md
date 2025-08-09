@@ -42,6 +42,16 @@ The system consists of two main packages:
 └── README.md                       # This file
 ```
 
+## Package Dependencies
+
+### Required ROS Packages
+- **rospy** - Python client library for ROS
+- **std_msgs** - Standard ROS message types
+- **sensor_msgs** - Sensor-specific message types
+- **geometry_msgs** - Geometric primitive messages
+- **catkin** - ROS build system
+
+
 ## Key Features
 
 ### Master-Slave Architecture
