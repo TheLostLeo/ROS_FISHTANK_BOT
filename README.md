@@ -64,52 +64,6 @@ Response Topics ← Status Updates ← Component Status ← Actual Operations
 - **geometry_msgs** - Geometric primitive messages
 - **catkin** - ROS build system
 
-
-## Key Features
-
-### Central Brain Architecture
-- **Master Brain**: Central coordinator managing all subsystems via ROS topics
-- **Bot Controller**: Dedicated WebSocket handler for tank communication
-- **Water Pump Controller**: Hardware control with simulation fallback
-- **Professional Communication**: Status updates only when changes occur
-
-### Advanced System Coordination
-- **Topic-Based Communication**: Pure ROS messaging between all components
-- **State-Change Reporting**: Smart status updates prevent message spam
-- **One-Time Warnings**: Health monitoring without repetitive alerts
-- **Comprehensive Status**: Complete system status with JSON formatting
-
-### Tank Robot Features
-- **Autonomous Navigation**: Systematic zig-zag cleaning pattern
-- **Edge Detection**: IR sensor-based obstacle and wall detection
-- **Smart State Management**: Nodes only print on state changes
-- **Quiet Initialization**: Professional startup with ready confirmation
-- **Modular Design**: Separate nodes for sensors, motors, decision-making
-
-### Water Management System
-- **Demo Pump Control**: Simulated water pump operations without hardware
-- **Operation Feedback**: Start/stop/completion messages to master brain
-- **Water Level Simulation**: Realistic water level changes during operations
-- **Multi-Phase Cycles**: Complete water change cycles (drain → fill)
-- **Safety Monitoring**: Warnings for simultaneous pump/cleaning operations
-
-### Interactive Testing System
-- **Enhanced Command Menu**: Tank controls + pump controls + system status
-- **Professional Output**: Clean status reports without spam
-- **Multiple Operation Modes**: Interactive, command-line, and automated testing
-- **Real-Time Feedback**: Immediate command acknowledgment and status updates
-- **Comprehensive Controls**: 
-  - Tank: `start`, `stop`, `status`
-  - Pump: `drain`, `fill`, `water_change`, `pump_stop`
-  - System: `system_status`
-
-### Configuration Management
-- **Environment Variables**: Secure WebSocket configuration via .env files
-- **python-dotenv Integration**: Professional environment variable handling
-- **Security**: Sensitive configuration excluded from version control (.gitignore)
-- **Easy Setup**: Copy example.env to .env for quick configuration
-- **Default Values**: Works out-of-the-box with localhost:8765
-
 ## Getting Started
 
 ### Prerequisites
@@ -183,6 +137,50 @@ SYSTEM:
   9. help          - Show this menu
  10. quit          - Exit test program
 ```
+## Key Features
+
+### Central Brain Architecture
+- **Master Brain**: Central coordinator managing all subsystems via ROS topics
+- **Bot Controller**: Dedicated WebSocket handler for tank communication
+- **Water Pump Controller**: Hardware control with simulation fallback
+- **Professional Communication**: Status updates only when changes occur
+
+### Advanced System Coordination
+- **Topic-Based Communication**: Pure ROS messaging between all components
+- **State-Change Reporting**: Smart status updates prevent message spam
+- **One-Time Warnings**: Health monitoring without repetitive alerts
+- **Comprehensive Status**: Complete system status with JSON formatting
+
+### Tank Robot Features
+- **Autonomous Navigation**: Systematic zig-zag cleaning pattern
+- **Edge Detection**: IR sensor-based obstacle and wall detection
+- **Smart State Management**: Nodes only print on state changes
+- **Quiet Initialization**: Professional startup with ready confirmation
+- **Modular Design**: Separate nodes for sensors, motors, decision-making
+
+### Water Management System
+- **Demo Pump Control**: Simulated water pump operations without hardware
+- **Operation Feedback**: Start/stop/completion messages to master brain
+- **Water Level Simulation**: Realistic water level changes during operations
+- **Multi-Phase Cycles**: Complete water change cycles (drain → fill)
+- **Safety Monitoring**: Warnings for simultaneous pump/cleaning operations
+
+### Interactive Testing System
+- **Enhanced Command Menu**: Tank controls + pump controls + system status
+- **Professional Output**: Clean status reports without spam
+- **Multiple Operation Modes**: Interactive, command-line, and automated testing
+- **Real-Time Feedback**: Immediate command acknowledgment and status updates
+- **Comprehensive Controls**: 
+  - Tank: `start`, `stop`, `status`
+  - Pump: `drain`, `fill`, `water_change`, `pump_stop`
+  - System: `system_status`
+
+### Configuration Management
+- **Environment Variables**: Secure WebSocket configuration via .env files
+- **python-dotenv Integration**: Professional environment variable handling
+- **Security**: Sensitive configuration excluded from version control (.gitignore)
+- **Easy Setup**: Copy example.env to .env for quick configuration
+- **Default Values**: Works out-of-the-box with localhost:8765
 
 
 ## ROS Topics & Communication
