@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<launch>
+  
+  <!-- Gazebo World Launch -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find tank_snode)/worlds/tank_world.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="recording" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
+
+  <!-- Robot Description Parameter -->
+  <param name="robot_description" command="$(find xacro)/xacro --inorder $(find tank_snode)/urdf/tank_robot.urdf" />
+
+  <!-- Spawn Robot in Gazebo -->
+  <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
+        args="-urdf -model tank_robot -param robot_description -x 0 -y 0 -z 0.1" />
+
+  <!-- Robot State Publisher -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="false" output="screen">
+    <remap from="/joint_states" to="/tank_robot/joint_states" />
+  </node>
+
+  <!-- Joint State Publisher -->
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+
+  <!-- RViz for visualization (optional) -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find tank_snode)/config/tank_robot.rviz" required="false"/>
+
+</launch>

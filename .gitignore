@@ -4,6 +4,11 @@ devel/
 install/
 .catkin_workspace
 
+# Environment variables
+.env
+*.env
+!example.env
+
 # Python
 __pycache__/
 *.py[cod]

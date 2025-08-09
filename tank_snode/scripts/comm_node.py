@@ -9,6 +9,11 @@ import websockets
 import threading
 import json
 import time
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv('/home/tll/catkin_ws/src/.env')
 
 class CommNode:
     def __init__(self):
@@ -210,9 +215,13 @@ if __name__ == '__main__':
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         
-        print("COMM NODE: Starting WebSocket server on ws://localhost:8765")
-        start_server = websockets.serve(websocket_server, "localhost", 8765)
-        rospy.loginfo("WebSocket server started on ws://localhost:8765")
+        # Get WebSocket configuration from environment variables (silently)
+        ws_host = os.getenv('WEBSOCKET_HOST', 'localhost')
+        ws_port = int(os.getenv('WEBSOCKET_PORT', '8765'))
+        
+        print("COMM NODE: Starting WebSocket server...")
+        start_server = websockets.serve(websocket_server, ws_host, ws_port)
+        rospy.loginfo("WebSocket server started")
         
         loop.run_until_complete(start_server)
         loop.run_forever()

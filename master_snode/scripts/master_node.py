@@ -13,6 +13,11 @@ import threading
 import json
 from datetime import datetime
 import time
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv('/home/tll/catkin_ws/src/.env')
 
 class MasterNode:
     def __init__(self):
@@ -29,7 +34,9 @@ class MasterNode:
         
         # Setting for websocket connection and initial system state
         # This will connect to the all tank_snode WebSocket server
-        self.tank_websocket_uri = "ws://localhost:8765"  # tank_snode WebSocket server
+        ws_host = os.getenv('WEBSOCKET_HOST', 'localhost')
+        ws_port = os.getenv('WEBSOCKET_PORT', '8765')
+        self.tank_websocket_uri = f"ws://{ws_host}:{ws_port}"  # tank_snode WebSocket server
         self.websocket_connection = None
         self.is_connected = False
         self.connection_established = False
@@ -106,7 +113,7 @@ class MasterNode:
         for attempt in range(max_retries):
             try:
                 print(f"MASTER NODE: Connection attempt {attempt + 1}/{max_retries}")
-                print(f"MASTER NODE: Connecting to {self.tank_websocket_uri}")
+                print("MASTER NODE: Connecting to tank...")
                 
                 self.websocket_connection = await websockets.connect(self.tank_websocket_uri)
                 self.is_connected = True
