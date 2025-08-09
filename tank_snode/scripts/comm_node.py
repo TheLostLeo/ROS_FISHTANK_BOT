@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+"""Communication Node for Tank Cleaning Robot
+This node handles communication with the master_snode and manages tank cleaning operations.
+"""
 import rospy
 from std_msgs.msg import String
 import asyncio
@@ -9,6 +12,7 @@ import time
 
 class CommNode:
     def __init__(self):
+        # Initialize ROS node
         self.status_pub = rospy.Publisher('/status_report', String, queue_size=10)
         self.control_pub = rospy.Publisher('/tank_control', String, queue_size=10)
         self.is_cleaning = False
@@ -19,7 +23,7 @@ class CommNode:
         print("COMM NODE: Waiting for master_snode connection...")
         
     async def send_status_to_master(self, status_msg):
-        """Send status updates to master node via WebSocket"""
+        """Send status updates"""
         if self.websocket_connection and self.master_connected:
             try:
                 message = {
@@ -35,7 +39,7 @@ class CommNode:
                 self.master_connected = False
         
     def start_cleaning(self):
-        """Start tank cleaning operation"""
+        """Start operation"""
         if not self.is_cleaning:
             self.is_cleaning = True
             rospy.loginfo("Received START signal - Beginning tank cleaning operation")
@@ -50,7 +54,7 @@ class CommNode:
             return "Tank already running"
             
     def stop_cleaning(self):
-        """Stop tank cleaning operation"""      
+        """Stop operation"""      
         if self.is_cleaning:
             self.is_cleaning = False
             rospy.loginfo("Received STOP signal - Stopping tank cleaning operation")
@@ -65,46 +69,37 @@ class CommNode:
             return "Tank is not running"
 
 def run_comm_node(comm):
-    """Run the communication node main loop"""
-    rate = rospy.Rate(0.5)  # Slower rate since master handles most communication
+    rate = rospy.Rate(0.5) 
 
     while not rospy.is_shutdown():
         if comm.master_connected:
-            # Send periodic status updates to master
             if comm.is_cleaning:
                 status_msg = "Tank is actively cleaning"
             else:
                 status_msg = "Tank ready - waiting for commands"
-                
-            # Send to ROS topics for other nodes
             comm.status_pub.publish(status_msg)
-            
-            # Note: WebSocket status updates are handled by the WebSocket server thread
         else:
             comm.status_pub.publish("Tank waiting for master connection")
             
         rate.sleep()
 
 if __name__ == '__main__':
-    # Global variable to share comm instance
     comm_instance = None
     
     async def websocket_server(websocket, path):
-        """Handle WebSocket connections from master_snode"""
+        """Handle WebSocket connections"""
         global comm_instance
-        comm = comm_instance  # Get the global comm instance
+        comm = comm_instance 
         
         try:
             print("COMM NODE: Master node connected via WebSocket!")
             print("COMM NODE: Initialization complete - system ready")
             
-            # Set connection status
             if comm:
                 comm.master_connected = True
                 comm.websocket_connection = websocket
                 print(f"COMM NODE: Connected to master, current status: {'cleaning' if comm.is_cleaning else 'ready'}")
-                
-            # Send initial connection confirmation
+
             welcome_msg = {
                 "type": "connection_established",
                 "message": "Tank communication node ready",
@@ -112,23 +107,20 @@ if __name__ == '__main__':
             }
             await websocket.send(json.dumps(welcome_msg))
             
-            # Handle incoming messages from master
             async for message in websocket:
                 try:
-                    # Try to parse as JSON first
+                    # JSON format
                     try:
                         msg_data = json.loads(message)
                         command = msg_data.get("command", "").lower()
                         msg_type = msg_data.get("type", "command")
                     except json.JSONDecodeError:
-                        # Fallback to plain text
                         command = message.lower().strip()
                         msg_type = "command"
                     
                     print(f"COMM NODE: Received from master: {command}")
                     rospy.loginfo(f"Received WebSocket message from master: {command}")
                     
-                    # Process commands
                     if command == "start":
                         if comm:
                             print(f"COMM NODE: Processing START command, current state: {'cleaning' if comm.is_cleaning else 'ready'}")
@@ -214,7 +206,7 @@ if __name__ == '__main__':
                 comm.websocket_connection = None
 
     def run_websocket_server():
-        """Run WebSocket server in background thread"""
+        """WebSocket server in background thread"""
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         
@@ -231,20 +223,16 @@ if __name__ == '__main__':
         
         print("COMM NODE: Creating communication node instance...")
         
-        # Create the main communication node instance
         comm_instance = CommNode()
-        globals()['comm_instance'] = comm_instance  # Make available to WebSocket handler
+        globals()['comm_instance'] = comm_instance  
         
         print("COMM NODE: Communication node created and ready")
         print(f"COMM NODE: Initial state - cleaning: {comm_instance.is_cleaning}")
-        
-        # Start WebSocket server in background thread  
+         
         websocket_thread = threading.Thread(target=run_websocket_server, daemon=True)
         websocket_thread.start()
         
         print("COMM NODE: WebSocket server started, ready for master connection...")
-        
-        # Run the main communication loop
         run_comm_node(comm_instance)
         
     except rospy.ROSInterruptException:
