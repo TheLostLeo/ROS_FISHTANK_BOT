@@ -109,16 +109,13 @@ class TankTestController:
     def show_menu(self):
         """Display the interactive menu"""
         print("Available Commands:")
-        print("TANK CONTROLS:")
         print("  1. start         - Start tank cleaning operation")
         print("  2. stop          - Stop tank cleaning operation") 
         print("  3. status        - Get current tank status")
-        print("PUMP CONTROLS:")
         print("  4. drain         - Drain tank water")
         print("  5. fill          - Fill tank with fresh water")
         print("  6. water_change  - Complete water change cycle")
         print("  7. pump_stop     - Stop all pump operations")
-        print("SYSTEM:")
         print("  8. system_status - Get complete system status")
         print("  9. help          - Show this menu")
         print(" 10. quit          - Exit test program")
