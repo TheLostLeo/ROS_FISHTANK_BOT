@@ -1,271 +1,328 @@
 #!/usr/bin/env python3
 """
-Master Node for Tank Cleaning Robot System
-This node acts as a master controller that sends WebSocket commands to tank_snode
-and manages the overall system state.
+Master Brain Node for Tank Cleaning Robot System
+This node acts as the central coordinator that manages all subsystems through ROS topics.
+It receives user commands and coordinates tank cleaning, water pump, and other operations.
 """
 
 import rospy
-from std_msgs.msg import String
-import asyncio
-import websockets
-import threading
+from std_msgs.msg import String, Bool
 import json
 from datetime import datetime
 import time
-import os
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv('/home/tll/catkin_ws/src/.env')
-
-class MasterNode:
+class MasterBrain:
     def __init__(self):
-        rospy.init_node('master_node')
+        rospy.init_node('master_brain')
         
-        # Create publishers for commands and status
-        # These will be used to send commands to tank_snode and receive status updates
-        self.command_pub = rospy.Publisher('/master_commands', String, queue_size=10)
-        self.status_pub = rospy.Publisher('/master_status', String, queue_size=10)
+        # Publishers - send commands to subsystems
+        self.bot_command_pub = rospy.Publisher('/bot_commands', String, queue_size=10)
+        self.pump_command_pub = rospy.Publisher('/pump_control', String, queue_size=10)
+        self.system_status_pub = rospy.Publisher('/master_status', String, queue_size=10)
+        self.master_response_pub = rospy.Publisher('/master_commands', String, queue_size=10)
         
-        # Create subscribers for control commands
-
-        rospy.Subscriber('/master_control', String, self.control_callback)
+        # Subscribers - receive status from subsystems and user commands
+        rospy.Subscriber('/master_control', String, self.user_command_callback)
+        rospy.Subscriber('/tank_response', String, self.tank_response_callback)
+        rospy.Subscriber('/tank_status', String, self.tank_status_callback)
+        rospy.Subscriber('/bot_connection', String, self.bot_connection_callback)
+        rospy.Subscriber('/pump_status', String, self.pump_status_callback)
+        rospy.Subscriber('/pump_response', String, self.pump_response_callback)  # New pump response subscriber
+        rospy.Subscriber('/water_level', Bool, self.water_level_callback)
         
-        # Setting for websocket connection and initial system state
-        # This will connect to the all tank_snode WebSocket server
-        ws_host = os.getenv('WEBSOCKET_HOST', 'localhost')
-        ws_port = os.getenv('WEBSOCKET_PORT', '8765')
-        self.tank_websocket_uri = f"ws://{ws_host}:{ws_port}"  # tank_snode WebSocket server
-        self.websocket_connection = None
-        self.is_connected = False
-        self.connection_established = False
+        # System state variables
+        self.bot_connected = False
         self.tank_status = "unknown"
         self.tank_is_cleaning = False
-        self.last_command = None
+        self.pump_running = False
+        self.pump_operation = "idle"
+        self.water_level_ok = True
+        
+        # Warning state tracking to prevent repeated warnings
+        self.warned_pump_tank_simultaneous = False
+        self.warned_low_water_cleaning = False
+        
+        # Command history and coordination
+        self.last_user_command = None
         self.command_history = []
-        self.event_loop = None
-        print("MASTER NODE: Initializing...")
-        print("MASTER NODE: Attempting to connect to tank...")
-        rospy.loginfo("Master Node initialized")
+        self.system_operations = []  # Track multi-step operations
         
-    def control_callback(self, msg):
-        """Ros topic to handle the control commands"""
+        print("MASTER: Central coordinator initialized")
+        print("MASTER: Managing tank, pump, and user interface")
+        rospy.loginfo("Master Node started - coordinating all subsystems")
+
+    def user_command_callback(self, msg):
+        """Handle commands from user interface (test_user_input.py)"""
         command = msg.data.strip().upper()
-        print(f"MASTER NODE: Received ROS command: {command}")
-        rospy.loginfo(f"Received control command: {command}")
+        print(f"MASTER: Received user command: {command}")
         
+        # Log command
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.last_user_command = {
+            "command": command,
+            "timestamp": timestamp,
+            "status": "processing"
+        }
+        self.command_history.append(self.last_user_command)
+        
+        # Process user commands
         if command in ["START", "STOP", "STATUS"]:
-            if self.is_connected and self.event_loop:
-                try:
-                    asyncio.run_coroutine_threadsafe(
-                        self.send_websocket_command(command.lower()), self.event_loop
-                    )
-                except Exception as e:
-                    print(f"WARNING MASTER NODE: Error scheduling command: {e}")
-            else:
-                print("WARNING MASTER NODE: Not connected to tank - command ignored")
-                rospy.logwarn("Cannot send command - not connected to tank")
+            self.handle_tank_command(command)
+        elif command in ["DRAIN", "FILL", "WATER_CHANGE", "PUMP_STOP"]:
+            self.handle_pump_command(command)
+        elif command == "SYSTEM_STATUS":
+            self.publish_system_status(print_status=True)  # Print when user requests it
         else:
-            rospy.logwarn(f"Unknown command received: {command}")
+            print(f"MASTER: Unknown command: {command}")
+            self.master_response_pub.publish(f"ERROR: Unknown command '{command}'")
             
-    async def send_websocket_command(self, command):
-        """Websocket command that sends commans to tank_bot"""
-        if not self.is_connected or not self.websocket_connection:
-            print("ERROR MASTER NODE: No WebSocket connection to tank")
-            return None
-        try:
-            # JSON commmand format
-            message = {
-                "command": command,
-                "timestamp": time.time(),
-                "type": "command"
-            }
-            await self.websocket_connection.send(json.dumps(message))
-            print(f"MASTER NODE: Sent '{command}' command to tank")
-            
-            # LOG For the command history
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            command_record = {
-                "timestamp": timestamp,
-                "command": command,
-                "response": "Command sent - waiting for response"
-            }
-            
-            self.command_history.append(command_record)
-            self.last_command = command_record
-            self.command_pub.publish(f"COMMAND_SENT: {command}")
-            
-            return {"result": "Command sent successfully"}
-            
-        except Exception as e:
-            print(f"ERROR MASTER NODE: Error sending command: {e}")
-            rospy.logerr(f"Error sending WebSocket command: {e}")
-            self.is_connected = False
-            self.websocket_connection = None
-            return None
-            
-    async def connect_to_tank(self):
-        """Establish WebSocket connection"""
-        max_retries = 5
-        retry_delay = 2
+    def handle_tank_command(self, command):
+        """Handle tank cleaning related commands"""
+        print(f"MASTER: Processing tank command: {command}")
         
-        for attempt in range(max_retries):
-            try:
-                print(f"MASTER NODE: Connection attempt {attempt + 1}/{max_retries}")
-                print("MASTER NODE: Connecting to tank...")
-                
-                self.websocket_connection = await websockets.connect(self.tank_websocket_uri)
-                self.is_connected = True
-                
-                print("MASTER NODE: WebSocket connection established")
-                print("MASTER NODE: Waiting for tank initialization...")
-                welcome_msg = await self.websocket_connection.recv()
-                welcome_data = json.loads(welcome_msg)
-                if welcome_data.get("type") == "connection_established":
-                    self.connection_established = True
-                    self.tank_status = welcome_data.get("tank_status", "ready")
-                    print("MASTER NODE: Connection fully established!")
-                    print(f"MASTER NODE: Tank status: {self.tank_status}")
-                    print("MASTER NODE: System ready for commands")
-                    rospy.loginfo("Successfully connected and initialized with tank")
-                    return True
-                else:
-                    print("WARNING MASTER NODE: Unexpected welcome message")
-                    
-            except ConnectionRefusedError:
-                print(f"MASTER NODE: Tank not ready yet, retrying in {retry_delay}s...")
-                await asyncio.sleep(retry_delay)
-            except Exception as e:
-                print(f"ERROR MASTER NODE: Connection error: {e}")
-                await asyncio.sleep(retry_delay)
-                
-        print("ERROR MASTER NODE: Failed to connect after all retries")
-        rospy.logerr("Failed to connect to tank WebSocket server after multiple attempts")
-        return False
+        if not self.bot_connected:
+            print("MASTER: Bot controller not connected - cannot execute tank command")
+            self.master_response_pub.publish("ERROR: Tank not connected")
+            return
             
-    async def listen_for_tank_updates(self):
-        """Message handler for tank updates"""
-        try:
-            while self.is_connected and self.websocket_connection:
-                try:
-                    message = await asyncio.wait_for(self.websocket_connection.recv(), timeout=1.0)
-                    data = json.loads(message)
-                    
-                    message_type = data.get("type", "unknown")
-                    
-                    if message_type == "status_update":
-                        self.tank_status = "cleaning" if data.get("is_cleaning") else "ready"
-                        self.tank_is_cleaning = data.get("is_cleaning", False)
-                        print(f"MASTER NODE: Tank update - {data.get('message')}")
-                        
-                    elif message_type == "command_response":
-                        result = data.get('result', 'Success')
-                        command = data.get('command', 'unknown')
-                        print(f"MASTER NODE: Tank responded to '{command}': {result}")
-                        
-                        if self.last_command:
-                            self.last_command['response'] = data
-                        
-                        if 'status' in data:
-                            self.tank_status = data['status']
-                        if 'is_cleaning' in data:
-                            self.tank_is_cleaning = data['is_cleaning']
-                            
-                        if command == "start":
-                            if "already running" in result.lower():
-                                self.status_pub.publish(f"TANK_RESPONSE: Bot already running")
-                            else:
-                                self.status_pub.publish(f"TANK_RESPONSE: Bot is running")
-                        elif command == "stop":
-                            if "not running" in result.lower():
-                                self.status_pub.publish(f"TANK_RESPONSE: Bot is not running")  
-                            else:
-                                self.status_pub.publish(f"TANK_RESPONSE: Bot stopped")
-                        elif command == "status":
-                            self.status_pub.publish(f"TANK_RESPONSE: {result}")
-                        else:
-                            self.status_pub.publish(f"TANK_RESPONSE: {result}")
-                        
+        if command == "START":
+            if self.tank_is_cleaning:
+                self.master_response_pub.publish("TANK_RESPONSE: Bot already running")
+            else:
+                print("MASTER: Sending START command to tank")
+                self.bot_command_pub.publish("start")
+        elif command == "STOP":
+            if not self.tank_is_cleaning:
+                self.master_response_pub.publish("TANK_RESPONSE: Bot is not running")
+            else:
+                print("MASTER: Sending STOP command to tank")
+                self.bot_command_pub.publish("stop")
+        elif command == "STATUS":
+            print("MASTER: Requesting tank status")
+            self.bot_command_pub.publish("status")
+            
+    def handle_pump_command(self, command):
+        """Handle water pump related commands"""
+        print(f"MASTER: Processing pump command: {command}")
+        
+        if command == "DRAIN":
+            print("MASTER: Starting tank drain operation")
+            self.pump_command_pub.publish("DRAIN")
+            self.master_response_pub.publish("PUMP_RESPONSE: Starting drain operation")
+        elif command == "FILL":
+            print("MASTER: Starting tank fill operation")
+            self.pump_command_pub.publish("FILL")
+            self.master_response_pub.publish("PUMP_RESPONSE: Starting fill operation")
+        elif command == "WATER_CHANGE":
+            print("MASTER: Starting complete water change cycle")
+            self.pump_command_pub.publish("CLEAN")
+            self.master_response_pub.publish("PUMP_RESPONSE: Starting water change cycle")
+        elif command == "PUMP_STOP":
+            print("MASTER: Stopping pump operations")
+            self.pump_command_pub.publish("STOP")
+            self.master_response_pub.publish("PUMP_RESPONSE: Stopping pump")
+            
+    def tank_response_callback(self, msg):
+        """Handle responses from tank via bot controller"""
+        response = msg.data
+        print(f"MASTER: Tank response: {response}")
+        
+        # Parse response format: "RESPONSE:command:result:status"
+        if response.startswith("RESPONSE:"):
+            parts = response.split(":", 3)
+            if len(parts) >= 4:
+                _, command, result, status = parts
+                
+                if command == "start":
+                    if "already" in result.lower():
+                        self.master_response_pub.publish("TANK_RESPONSE: Bot already running")
                     else:
-                        print(f"MASTER NODE: Received message: {data.get('message', str(data))}")
-                        
-                except asyncio.TimeoutError:
-                    continue  
-                except websockets.exceptions.ConnectionClosed:
-                    print("MASTER NODE: Tank disconnected")
-                    self.is_connected = False
-                    break
-                    
-        except Exception as e:
-            print(f"ERROR MASTER NODE: Error listening for updates: {e}")
-            self.is_connected = False
+                        self.master_response_pub.publish("TANK_RESPONSE: Bot is running")
+                elif command == "stop":
+                    if "not running" in result.lower():
+                        self.master_response_pub.publish("TANK_RESPONSE: Bot is not running")
+                    else:
+                        self.master_response_pub.publish("TANK_RESPONSE: Bot stopped")
+                elif command == "status":
+                    self.master_response_pub.publish(f"TANK_RESPONSE: {result}")
+        elif response.startswith("ERROR:"):
+            self.master_response_pub.publish(f"TANK_RESPONSE: {response}")
             
-    def publish_status(self):
-        """Publish current master node status"""
-        status_msg = {
-            "connected_to_tank": self.is_connected,
-            "connection_established": self.connection_established,
+    def tank_status_callback(self, msg):
+        """Handle tank status updates"""
+        status_msg = msg.data
+        
+        if status_msg.startswith("STATUS:"):
+            status = status_msg.replace("STATUS:", "").strip()
+            
+            # Update tank state
+            prev_cleaning = self.tank_is_cleaning
+            self.tank_status = status
+            self.tank_is_cleaning = (status == "cleaning")
+            
+            if prev_cleaning != self.tank_is_cleaning:
+                print(f"MASTER: Tank cleaning state changed: {status}")
+                
+    def bot_connection_callback(self, msg):
+        """Handle bot controller connection status"""
+        connection_msg = msg.data
+        
+        if connection_msg.startswith("CONNECTED:"):
+            if not self.bot_connected:
+                self.bot_connected = True
+                print("MASTER: Bot controller connected to tank")
+        elif connection_msg.startswith("DISCONNECTED:") or connection_msg.startswith("FAILED:"):
+            if self.bot_connected:
+                self.bot_connected = False
+                print("MASTER: Bot controller disconnected from tank")
+
+    def pump_status_callback(self, msg):
+        """Handle pump status updates"""
+        status_msg = msg.data
+        
+        # Parse pump status for state tracking (don't print routine updates)
+        prev_running = self.pump_running
+        prev_operation = self.pump_operation
+        
+        if "Running=True" in status_msg:
+            self.pump_running = True
+        elif "Running=False" in status_msg:
+            self.pump_running = False
+            
+        if "Operation=" in status_msg:
+            try:
+                operation_part = status_msg.split("Operation=")[1].split(",")[0]
+                self.pump_operation = operation_part.strip()
+            except:
+                pass
+        
+        # Only print when pump state actually changes
+        if prev_running != self.pump_running or prev_operation != self.pump_operation:
+            print(f"MASTER: Pump state changed - Running: {self.pump_running}, Operation: {self.pump_operation}")
+    
+    def pump_response_callback(self, msg):
+        """Handle pump response/feedback messages"""
+        response = msg.data
+        
+        # Parse and display pump response messages
+        if response.startswith("PUMP_COMMAND_RECEIVED:"):
+            parts = response.split(":", 2)
+            if len(parts) >= 3:
+                _, command, status = parts
+                print(f"MASTER: Pump acknowledged {command} command - {status}")
+                self.master_response_pub.publish(f"PUMP_RESPONSE: {command} {status}")
+                
+        elif response.startswith("PUMP_STARTED:"):
+            parts = response.split(":", 2)
+            if len(parts) >= 3:
+                _, operation, duration = parts
+                print(f"MASTER: Pump started {operation} operation ({duration})")
+                self.master_response_pub.publish(f"PUMP_RESPONSE: Started {operation} operation")
+                
+        elif response.startswith("PUMP_COMPLETED:"):
+            parts = response.split(":", 2)
+            if len(parts) >= 3:
+                _, operation, result = parts
+                print(f"MASTER: Pump completed {operation} - {result}")
+                self.master_response_pub.publish(f"PUMP_RESPONSE: {operation.capitalize()} completed successfully")
+                
+        elif response.startswith("PUMP_STOPPED:"):
+            parts = response.split(":", 2)
+            if len(parts) >= 3:
+                _, operation, reason = parts
+                print(f"MASTER: Pump stopped {operation} - {reason}")
+                self.master_response_pub.publish(f"PUMP_RESPONSE: {operation.capitalize()} stopped")
+                
+        elif response.startswith("PUMP_CYCLE_PHASE:"):
+            parts = response.split(":", 2)
+            if len(parts) >= 3:
+                _, cycle_type, phase = parts
+                print(f"MASTER: Water change cycle - {phase.replace('_', ' ')}")
+                self.master_response_pub.publish(f"PUMP_RESPONSE: {phase.replace('_', ' ').title()}")
+                
+        elif response.startswith("PUMP_CYCLE_COMPLETED:"):
+            parts = response.split(":", 2)
+            if len(parts) >= 3:
+                _, cycle_type, result = parts
+                print(f"MASTER: Water change cycle completed - {result.replace('_', ' ')}")
+                self.master_response_pub.publish(f"PUMP_RESPONSE: Water change completed - {result.replace('_', ' ')}")
+                
+    def water_level_callback(self, msg):
+        """Handle water level sensor updates"""
+        water_level_ok = msg.data
+        
+        if water_level_ok != self.water_level_ok:
+            self.water_level_ok = water_level_ok
+            status = "OK" if water_level_ok else "LOW"
+            print(f"MASTER: Water level changed: {status}")
+
+            if not water_level_ok:
+                print("MASTER: LOW WATER LEVEL WARNING!")
+
+    def publish_system_status(self, print_status=False):
+        """Publish comprehensive system status"""
+        system_status = {
+            "bot_connected": self.bot_connected,
             "tank_status": self.tank_status,
             "tank_is_cleaning": self.tank_is_cleaning,
-            "last_command": self.last_command,
-            "total_commands_sent": len(self.command_history)
+            "pump_running": self.pump_running,
+            "pump_operation": self.pump_operation,
+            "water_level_ok": self.water_level_ok,
+            "last_command": self.last_user_command,
+            "total_commands": len(self.command_history)
         }
         
-        self.status_pub.publish(json.dumps(status_msg))
-    """Command methods for tank control"""
-    async def start_tank_cleaning(self):
-        await self.send_websocket_command("start")
+        self.system_status_pub.publish(json.dumps(system_status))
         
-    async def stop_tank_cleaning(self):
-        await self.send_websocket_command("stop")
-        
-    async def get_tank_status(self):
-        return await self.send_websocket_command("status")
+        # Only print status when explicitly requested
+        if print_status:
+            print(f"MASTER: System status - Tank:{self.tank_status}, Pump:{self.pump_operation}, Water:{'OK' if self.water_level_ok else 'LOW'}")
 
-async def main():
-    master = MasterNode()
-    master.event_loop = asyncio.get_running_loop()
-    success = await master.connect_to_tank()
-    if not success:
-        print("ERROR MASTER NODE: Failed to initialize - continuing anyway for status publishing")
-        print("MASTER NODE: Will attempt reconnection periodically")
-    
-    if master.is_connected:
-        listen_task = asyncio.create_task(master.listen_for_tank_updates())
-    print("MASTER NODE: Status monitoring active")
-    print("MASTER NODE: Ready to receive commands via /master_control topic")
-    print("MASTER NODE: Publishing status on /master_status topic")
-    
+    def monitor_system_health(self):
+        """Monitor overall system health and coordination"""
+        # Check for issues and handle coordination - only warn once per condition
+        
+        # Warning if tank is cleaning but water level is low
+        if self.tank_is_cleaning and not self.water_level_ok:
+            if not self.warned_low_water_cleaning:
+                print("MASTER: WARNING - Tank cleaning with low water level!")
+                self.warned_low_water_cleaning = True
+        else:
+            # Reset warning when condition is no longer true
+            self.warned_low_water_cleaning = False
+
+        # Warning if pump is running while tank is cleaning
+        if self.tank_is_cleaning and self.pump_running:
+            if not self.warned_pump_tank_simultaneous:
+                print("MASTER: WARNING - Pump and tank cleaning running simultaneously!")
+                self.warned_pump_tank_simultaneous = True
+        else:
+            # Reset warning when condition is no longer true
+            self.warned_pump_tank_simultaneous = False
+
+def main():
     try:
+        master = MasterBrain()
+
+        print("MASTER: System coordination active")
+        print("MASTER: Ready to receive user commands via /master_control")
+        print("MASTER: Monitoring all subsystem status")
+
+        # Main coordination loop
+        rate = rospy.Rate(1)  # 1 Hz system monitoring
         while not rospy.is_shutdown():
-            master.publish_status()
+            master.publish_system_status()  # Don't print - just publish to ROS topics
+            master.monitor_system_health()
+            rate.sleep()
             
-            if not master.is_connected:
-                print("MASTER NODE: Attempting periodic reconnection...")
-                reconnect_success = await master.connect_to_tank()
-                if reconnect_success:
-                    listen_task = asyncio.create_task(master.listen_for_tank_updates())
-                
-            await asyncio.sleep(1)
-            
+    except rospy.ROSInterruptException:
+        print("MASTER: ROS shutdown requested")
     except KeyboardInterrupt:
-        print("\nMASTER NODE: Shutting down...")
+        print("\nMASTER: Keyboard interrupt received")
     except Exception as e:
-        print(f"ERROR MASTER NODE: Error in main loop: {e}")
+        print(f"ERROR MASTER: Fatal error: {e}")
     finally:
-        if master.is_connected and master.websocket_connection:
-            await master.websocket_connection.close()
-        print("MASTER NODE: Shutdown complete")
+        print("MASTER: Shutdown complete")
 
 if __name__ == '__main__':
-    try:
-        asyncio.run(main())
-    except rospy.ROSInterruptException:
-        print("MASTER NODE: ROS shutdown requested")
-    except KeyboardInterrupt:
-        print("\nMASTER NODE: Keyboard interrupt")
-    except Exception as e:
-        print(f"ERROR MASTER NODE: Fatal error: {e}")
-    finally:
-        print("MASTER NODE: Goodbye!")
+    main()

@@ -222,7 +222,7 @@ Available Commands:
 - Clean build: `catkin_make clean && catkin_make`
 - Check dependencies in requirements.txt
 - Verify Python path and virtual environment
-- Install missing dependency: `pip install python-dotenv`
+- Install missing dependency
 
 ## License
 
