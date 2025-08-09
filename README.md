@@ -42,6 +42,48 @@ The system consists of two main packages:
 └── README.md                       # This file
 ```
 
+## Build Configuration
+
+The system uses standard ROS catkin build system with CMakeLists.txt files for each package:
+
+### Tank Node Package (tank_snode/CMakeLists.txt)
+```cmake
+cmake_minimum_required(VERSION 3.0.2)
+project(tank_snode)
+
+find_package(catkin REQUIRED COMPONENTS
+  rospy
+  sensor_msgs
+  std_msgs
+)
+
+catkin_package(
+  CATKIN_DEPENDS rospy sensor_msgs std_msgs
+)
+```
+
+### Master Node Package (master_snode/CMakeLists.txt)
+```cmake
+cmake_minimum_required(VERSION 3.0.2)
+project(master_snode)
+
+find_package(catkin REQUIRED COMPONENTS
+  rospy
+  std_msgs
+)
+
+catkin_package(
+  CATKIN_DEPENDS rospy std_msgs
+)
+```
+
+### Key Dependencies
+- **rospy**: Python ROS client library
+- **std_msgs**: Standard ROS message types
+- **sensor_msgs**: Sensor-specific message types (tank_snode only)
+- **CMake 3.0.2+**: Build system requirement
+- **Python 3.8+**: Runtime requirement
+
 ## Key Features
 
 ### Master-Slave Architecture
@@ -76,6 +118,8 @@ The system consists of two main packages:
 
 - ROS Noetic (Ubuntu 20.04)
 - Python 3.8+
+- CMake 3.0.2 or higher
+- Git
 - Catkin workspace
 
 ### Installation
@@ -86,12 +130,24 @@ cd ~/catkin_ws/src
 git clone https://github.com/TheLostLeo/ROS_FISHTANK_BOT.git
 ```
 
-2. Build the packages:
+2. Build the packages using catkin:
 ```bash
 cd ~/catkin_ws
 catkin_make
+
+# Verify build success
+echo "Build completed successfully!"
+ls devel/setup.bash  # Should exist after successful build
+
+# Source the workspace
 source devel/setup.bash
 ```
+
+**Build Process Details:**
+- CMake processes both `tank_snode` and `master_snode` packages
+- Dependencies are automatically resolved via `find_package(catkin REQUIRED COMPONENTS ...)`
+- Python scripts are made executable during build
+- Launch files are installed to proper locations
 
 3. Set up Python virtual environment:
 ```bash
@@ -189,6 +245,18 @@ Available Commands:
 - Clean build: `catkin_make clean && catkin_make`
 - Check dependencies in requirements.txt
 - Verify Python path and virtual environment
+- **CMake Errors**: 
+  - Ensure CMake version 3.0.2+: `cmake --version`
+  - Check ROS installation: `rospack find rospy`
+  - Verify catkin workspace setup: `ls ~/catkin_ws/src/CMakeLists.txt`
+- **Package Dependencies**: 
+  - Missing rospy: `sudo apt-get install ros-noetic-rospy`
+  - Missing std_msgs: `sudo apt-get install ros-noetic-std-msgs`
+  - Missing sensor_msgs: `sudo apt-get install ros-noetic-sensor-msgs`
+- **Python Issues**:
+  - Check Python version: `python3 --version` (should be 3.8+)
+  - Verify virtual environment: `which python` (should point to myenv)
+  - Install missing packages: `pip install -r requirements.txt`
 
 ## License
 

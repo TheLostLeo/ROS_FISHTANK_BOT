@@ -54,6 +54,8 @@ CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
 Makefile
+# Only ignore the top-level catkin-generated CMakeLists.txt
+/CMakeLists.txt
 
 # Backup files
 *~
