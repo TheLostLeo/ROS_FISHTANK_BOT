@@ -80,6 +80,13 @@ The system consists of two main packages:
 - **Command Feedback**: Clear responses (Bot is running/Bot already running)
 - **Professional Output**: Clean interface without spam or unnecessary output
 
+### Configuration Management
+- **Environment Variables**: Secure WebSocket configuration via .env files
+- **Easy Setup**: Copy example.env to .env for quick configuration
+- **Default Values**: Works out-of-the-box with localhost:8765
+- **Security**: Sensitive configuration excluded from version control
+- **Professional Output**: Clean interface without spam or unnecessary output
+
 ## Getting Started
 
 ### Prerequisites
@@ -109,6 +116,16 @@ cd ~/catkin_ws/src
 python3 -m venv myenv
 source myenv/bin/activate
 pip install -r requirements.txt  
+```
+
+4. Configure environment variables:
+```bash
+# Copy the example environment file
+cp example.env .env
+
+# Edit .env file if you need to customize WebSocket settings
+# Default values: WEBSOCKET_HOST=localhost, WEBSOCKET_PORT=8765
+nano .env  # or use your preferred editor
 ```
 
 ### Usage
@@ -187,8 +204,14 @@ Available Commands:
 
 **Connection Issues:**
 - Ensure tank_snode is running before master_snode
-- Check WebSocket port 8765 is available
+- Check WebSocket port is available (default: 8765)
 - Verify virtual environment is activated
+- Ensure .env file exists: `cp example.env .env`
+
+**Environment Variable Issues:**
+- Missing .env file: Copy `example.env` to `.env`
+- Port conflicts: Change `WEBSOCKET_PORT` in .env file
+- Host binding issues: Set `WEBSOCKET_HOST=0.0.0.0` for all interfaces
 
 **Command Not Working:**
 - Check ROS topics: `rostopic list`
@@ -199,6 +222,7 @@ Available Commands:
 - Clean build: `catkin_make clean && catkin_make`
 - Check dependencies in requirements.txt
 - Verify Python path and virtual environment
+- Install missing dependency: `pip install python-dotenv`
 
 ## License
 
