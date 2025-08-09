@@ -42,9 +42,6 @@ Response Topics ← Status Updates ← Component Status ← Actual Operations
 │   │   ├── decision_node.py        # Cleaning pattern logic
 │   │   ├── ir_sensor_node.py       # IR sensor interface
 │   │   └── motor_node.py           # Motor control (demo)
-
-│   ├── urdf/                       # Robot models for simulation
-│   ├── worlds/                     # Gazebo world files
 │   ├── src/                        # C++ source files (if any)
 │   ├── CMakeLists.txt
 │   └── package.xml
