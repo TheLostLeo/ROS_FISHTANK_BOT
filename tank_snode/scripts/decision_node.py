@@ -14,9 +14,24 @@ row_completed = False
 going_up = True
 cleaning_pattern_active = False
 
+# Demo visualization
+move_counter = 0
+rows_completed = 0
+
+def print_cleaning_status():
+    """Print visual status of cleaning operation"""
+    global move_counter, rows_completed
+    print("\n" + "="*60)
+    print("TANK CLEANING ROBOT - DEMO MODE")
+    print(f"Status: {'CLEANING' if is_cleaning else 'STANDBY'}")
+    print(f"Current Direction: {current_direction}")
+    print(f"Moves Made: {move_counter}")
+    print(f"Rows Completed: {rows_completed}")
+    print("="*60)
+
 def tank_control_callback(msg):
     """Handle tank control commands from comm_node"""
-    global is_cleaning, current_direction, cleaning_pattern_active, going_up
+    global is_cleaning, current_direction, cleaning_pattern_active, going_up, move_counter, rows_completed
     command = msg.data
     
     if command == "START_CLEANING":
@@ -24,9 +39,18 @@ def tank_control_callback(msg):
         cleaning_pattern_active = True
         current_direction = "RIGHT"  # Start by moving right
         going_up = True
+        move_counter = 0
+        rows_completed = 0
+        
+        print("STARTING TANK CLEANING OPERATION!")
+        print("Implementing zig-zag cleaning pattern")
+        print("Pattern: RIGHT → UP → LEFT → UP → RIGHT → UP...")
+        print_cleaning_status()
+        
         rospy.loginfo("Starting tank cleaning operation with zig-zag pattern")
         comm_pub.publish("Tank cleaning operation started - zig-zag pattern")
         motor_pub.publish("FORWARD")  # Start moving in current direction
+        
     elif command == "STOP_CLEANING":
         is_cleaning = False
         cleaning_pattern_active = False
@@ -38,8 +62,7 @@ def execute_zigzag_turn():
     """Execute the zig-zag pattern turn sequence"""
     global current_direction, going_up
     
-    rospy.loginfo(f"Executing zig-zag turn. Currently going: {current_direction}")
-    comm_pub.publish(f"Zig-zag turn: was going {current_direction}")
+    print(f"Decision: Turning from {current_direction} to new direction")
     
     # Stop current movement
     motor_pub.publish("STOP")
@@ -109,24 +132,35 @@ def execute_zigzag_turn():
     
     # Resume forward movement in new direction
     motor_pub.publish("FORWARD")
-    comm_pub.publish(f"Zig-zag turn complete. Now going: {current_direction}")
+    print(f"Decision: Now moving {current_direction}")
 
 def edge_callback(msg):
     """Handle edge detection - execute zig-zag pattern when cleaning"""
-    global is_cleaning, cleaning_pattern_active
+    global is_cleaning, cleaning_pattern_active, move_counter, rows_completed
     status = msg.data
 
     if not is_cleaning:
-        # If not cleaning, just stop and wait
+        # If not cleaning, just stop and wait - no printing
         motor_pub.publish("STOP")
         return
 
     if status == "EDGE":
+        move_counter += 1
+        
         if cleaning_pattern_active:
+            print("Decision: Edge detected - executing zig-zag turn")
+            
             rospy.loginfo("Edge detected - executing zig-zag pattern turn")
             execute_zigzag_turn()
+            
+            # Check if we completed a row
+            if current_direction in ["LEFT", "RIGHT"]:
+                rows_completed += 1
+                print(f"Decision: Row {rows_completed} completed")
+            
         else:
             # Fallback to original random avoidance if pattern fails
+            print("Decision: Using fallback avoidance pattern")
             rospy.loginfo("Edge detected during cleaning! Executing avoidance maneuver.")
             comm_pub.publish("Edge detected! Executing avoidance maneuver.")
 
@@ -159,7 +193,7 @@ def decision_node():
     # Subscribe to tank control commands from comm_node
     rospy.Subscriber('/tank_control', String, tank_control_callback)
     
-    rospy.loginfo("Decision node ready - waiting for start command")
+    print("Decision Node is ready and waiting for commands")
     rospy.spin()
 
 if __name__ == '__main__':

@@ -2,11 +2,11 @@
 
 A ROS-based autonomous tank cleaning robot that follows a systematic zig-zag pattern for thorough tank floor cleaning.
 
-## 🤖 Overview
+## Overview
 
 This repository contains a complete ROS package for controlling an autonomous tank cleaning robot. The robot uses IR sensors for edge detection and follows a predefined zig-zag cleaning pattern to ensure complete coverage of the tank floor.
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 tank_snode/
@@ -24,7 +24,7 @@ tank_snode/
 └── package.xml                 # Package metadata
 ```
 
-## 🔧 Features
+## Features
 
 - **Autonomous Navigation**: Systematic zig-zag cleaning pattern
 - **Edge Detection**: IR sensor-based obstacle and edge avoidance
@@ -32,7 +32,7 @@ tank_snode/
 - **ROS Integration**: Full ROS node architecture with topic-based communication
 - **Modular Design**: Separate nodes for sensors, motors, decision-making, and communication
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -73,7 +73,7 @@ roslaunch tank_snode tank_bot.launch
 2. **Start cleaning operation**:
 Send a "start" command via WebSocket to begin the cleaning cycle.
 
-## 🎯 Cleaning Pattern
+## Cleaning Pattern
 
 The robot follows this systematic zig-zag pattern:
 
@@ -89,14 +89,14 @@ START→ →→→→→→→→→→→→→→→→→→→→→→→�
 9→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→→END
 ```
 
-## 📡 ROS Topics
+## ROS Topics
 
 - `/ir_sensor_data` - IR sensor readings
 - `/motor_control` - Motor command messages
 - `/robot_state` - Current robot status
 - `/cleaning_command` - Start/stop cleaning commands
 
-## 🛠️ Development
+## Development
 
 ### Setting up Development Environment
 
@@ -119,14 +119,14 @@ pip install rospy rospkg
 4. Test thoroughly
 5. Submit a pull request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🤝 Support
+## Support
 
 For questions or issues, please open an issue on GitHub or contact the maintainer.
 
 ---
 
-**Built with ❤️ for autonomous robotics**
+**Built with care for autonomous robotics**

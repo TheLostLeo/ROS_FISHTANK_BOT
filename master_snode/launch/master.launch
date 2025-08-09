@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Master Node Launch File -->
+  <node name="master_node" pkg="master_snode" type="master_node.py" output="screen" launch-prefix="/home/tll/catkin_ws/src/myenv/bin/python3">
+    <param name="tank_websocket_uri" value="ws://localhost:8765"/>
+  </node>
+  
+  <!-- Interactive Test Controller Node -->
+  <node name="test_controller" pkg="master_snode" type="test_user_input.py" output="screen" launch-prefix="/home/tll/catkin_ws/src/myenv/bin/python3" />
+  
+  <!-- Optional: You can add other nodes here later -->
+  
+</launch>

@@ -1,0 +1,100 @@
+# Python dependencies for Tank Cleaning Robot ROS System
+# 
+# This file contains all Python packages required by:
+# - tank_snode: Tank cleaning robot control nodes
+# - master_snode: Master controller with WebSocket communication
+#
+# Installation Instructions:
+# For virtual environment: pip install -r requirements.txt
+# For system-wide (ROS compatibility): sudo pip3 install -r requirements.txt
+
+# === CORE DEPENDENCIES (REQUIRED) ===
+
+# WebSocket communication (required for master_snode and tank_snode comm_node)
+websockets>=10.0
+
+# YAML parsing (required by ROS/rospy - CRITICAL for ROS to work)
+PyYAML>=5.3.1
+
+# Random number generation for IR sensor simulation
+# random (built-in Python module)
+
+# Time operations for delays and timing
+# time (built-in Python module)
+
+# === HARDWARE SIMULATION (for development/testing on non-Raspberry Pi) ===
+
+# Mock Raspberry Pi GPIO for development/testing on PC (not needed since we removed GPIO dependencies)
+# fake-rpi>=0.7.0
+
+# Alternative GPIO simulation (uncomment if fake-rpi doesn't work)
+# RPi.GPIO  # Only works on actual Raspberry Pi hardware
+
+
+
+# === DEVELOPMENT & DEBUGGING TOOLS (REQUIRED) ===
+
+# Better Python REPL for debugging
+ipython>=7.0.0
+
+# Unit testing framework  
+pytest>=6.0.0
+
+# Code formatting
+black>=22.0.0
+
+# Linting
+flake8>=4.0.0
+
+# Type checking
+mypy>=0.950
+
+# === ADDITIONAL UTILITIES (REQUIRED) ===
+
+# Enhanced terminal output (REQUIRED for colorful demo output)
+colorama>=0.4.4
+
+# Configuration file handling
+# configparser  # Built-in, but listing for reference
+
+# Serial communication (if needed for hardware communication)
+pyserial>=3.5
+
+# NumPy for numerical operations (if needed for sensor data processing)
+numpy>=1.21.0
+
+
+# Additional ROS and system dependencies
+catkin_pkg>=0.4.0      # Catkin package handling
+empy>=3.3.0            # Template processing for ROS
+defusedxml>=0.6.0      # Secure XML parsing
+
+# Network and communication
+urllib3>=1.26.0        # HTTP client for web requests
+requests>=2.25.0       # HTTP library for API calls
+
+# === SYSTEM-SPECIFIC NOTES ===
+#
+# For ROS Noetic on Ubuntu 20.04:
+# - Most ROS packages are available system-wide
+# - Use: sudo pip3 install -r requirements.txt for system-wide installation
+# - Use: pip install -r requirements.txt for virtual environment installation
+# - Ensure ROS environment is sourced: source /opt/ros/noetic/setup.bash
+#
+# For Raspberry Pi deployment:
+# - Uncomment RPi.GPIO if not already installed  
+# - Install system-wide: sudo pip3 install -r requirements.txt
+# - May need additional GPIO libraries: sudo apt install python3-rpi.gpio
+#
+# For demonstration/development without hardware:
+# - All GPIO operations are simulated with print statements
+# - IR sensor generates random edge detection patterns
+# - Motor commands display visual feedback in terminal
+# - Perfect for presentations and testing
+#
+# Installation order recommended:
+# 1. sudo apt update && sudo apt upgrade
+# 2. sudo pip3 install --upgrade pip
+# 3. sudo pip3 install -r requirements.txt
+# 4. cd ~/catkin_ws && catkin_make
+# 5. source devel/setup.bash
