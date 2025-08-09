@@ -41,9 +41,8 @@ Response Topics ← Status Updates ← Component Status ← Actual Operations
 │   │   ├── comm_node.py            # WebSocket server & communication
 │   │   ├── decision_node.py        # Cleaning pattern logic
 │   │   ├── ir_sensor_node.py       # IR sensor interface
-│   │   ├── motor_node.py           # Motor control (demo)
-│   │   ├── start_node.py           # System startup manager
-│   │   └── README.md               # Detailed technical documentation
+│   │   └── motor_node.py           # Motor control (demo)
+
 │   ├── urdf/                       # Robot models for simulation
 │   ├── worlds/                     # Gazebo world files
 │   ├── src/                        # C++ source files (if any)
